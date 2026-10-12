@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorio Virtual ELISA - Estomatología</title>
+    
+    <!-- Librerías Externas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Estilos Locales Modularizados -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-blue-900 text-white p-4 shadow-md flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold"><i class="fas fa-microscope mr-2"></i> Simulación ELISA</h1>
+            <p class="text-sm text-blue-200">Práctica de Estomatología - CCGR</p>
+        </div>
+        <button onclick="generatePDF()" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded font-bold shadow transition flex items-center">
+            <i class="fas fa-file-pdf mr-2"></i> Descargar Reporte
+        </button>
+    </header>
+
+    <main class="flex-grow flex flex-col lg:flex-row p-4 gap-4" id="report-content">
+        
+        <!-- Panel Izquierdo: Controles y Protocolo -->
+        <section class="w-full lg:w-1/4 flex flex-col gap-4">
+            <div class="bg-white p-3 sm:p-4 rounded shadow border-t-4 border-blue-600">
+                <h2 class="text-lg font-bold mb-3"><i class="fas fa-flask"></i> Protocolo de Acción</h2>
+                <div id="controls-container" class="space-y-3">
+                    <!-- Motor Bandersnatch inyectará botones aquí -->
+                </div>
+            </div>
+
+            <!-- Resultados UV-Vis -->
+            <div id="spectro-results" class="bg-gray-900 text-green-400 p-3 sm:p-4 rounded shadow hidden font-mono text-sm">
+                <h3 class="text-white font-bold mb-2 border-b border-gray-700 pb-1"><i class="fas fa-desktop"></i> Pantalla UV-Vis</h3>
+                <p id="cutoff-display" class="text-yellow-400 mb-2"></p>
+                <div id="results-list" class="space-y-1"></div>
+                <p id="clinical-verdict" class="mt-3 text-white text-xs"></p>
+            </div>
+        </section>
+
+        <!-- Panel Central: Microplaca y Visor Molecular -->
+        <section class="w-full lg:w-2/4 bg-white p-3 sm:p-4 rounded shadow flex flex-col items-center border-t-4 border-indigo-600 overflow-hidden">
+            <h2 class="text-lg font-bold mb-4 w-full"><i class="fas fa-table border-indigo-600"></i> Microplaca Pretratada</h2>
+            <div class="bg-gray-200 p-2 sm:p-4 rounded-lg shadow-inner inline-block w-full overflow-x-auto text-center flex justify-center">
+                <div id="plate-grid" class="grid gap-2 sm:gap-4 lg:gap-6">
+                    <!-- Generado dinámicamente -->
+                </div>
+            </div>
+            <div class="mt-4 text-xs sm:text-sm text-gray-500 w-full bg-slate-50 p-2 sm:p-3 rounded border">
+                <p><strong>Configuración de Corrida:</strong></p>
+                <ul class="list-disc pl-5 mt-1" id="run-config-info">
+                    <li>Pocillos recubiertos con Anticuerpo de Captura.</li>
+                </ul>
+            </div>
+
+            <!-- MACRO VISOR MOLECULAR ESCALONADO -->
+            <div class="mt-4 w-full border-2 border-blue-200 rounded-lg p-3 sm:p-4 bg-blue-50 flex flex-col items-center shadow-inner">
+                <h3 class="text-sm font-bold text-blue-900 mb-4"><i class="fas fa-search-plus"></i> Visor Molecular Lupa (Muestra 1)</h3>
+                
+                <!-- Círculo responsivo: 32 (móvil) a 48 (tablet/PC) -->
+                <div id="macro-well" class="w-32 h-32 sm:w-48 sm:h-48 rounded-full border-4 sm:border-8 border-slate-300 bg-white shadow-inner relative overflow-hidden flex justify-center items-end pb-1 sm:pb-2">
+                    <div id="macro-liquid" class="absolute bottom-0 w-full h-0 bg-transparent transition-all duration-700 z-10"></div>
+                    
+                    <!-- Capas del Sándwich MACRO con íconos dinámicos -->
+                    <div class="macro-layer z-20 text-slate-800 text-5xl sm:text-7xl pb-1 sm:pb-2"><i class="fas fa-vial"></i></div>
+                    <div id="macro-ag" class="macro-layer text-red-500 z-30 text-3xl sm:text-5xl opacity-0" style="transform: translateY(-20px);"><i class="fas fa-circle"></i></div>
+                    <div id="macro-ab-det" class="macro-layer text-blue-500 z-40 text-5xl sm:text-7xl opacity-0 relative" style="transform: rotate(180deg) translateY(-30px);">
+                        <i class="fas fa-vial"></i>
+                        <i class="fas fa-certificate text-yellow-500 absolute enzyme-pulse text-xl sm:text-3xl" style="top: -5px; right: -10px;"></i>
+                    </div>
+                </div>
+                <p id="macro-status" class="mt-4 font-bold text-blue-700 text-center text-xs h-8">Esperando interacción...</p>
+            </div>
+        </section>
+
+        <!-- Panel Derecho: Bitácora -->
+        <section class="w-full lg:w-1/4 bg-white p-3 sm:p-4 rounded shadow border-t-4 border-emerald-600 flex flex-col">
+            <h2 class="text-lg font-bold mb-3"><i class="fas fa-clipboard-list"></i> Bitácora de Laboratorio</h2>
+            <div id="action-log" class="flex-grow bg-slate-50 border border-slate-200 rounded p-3 overflow-y-auto h-64 sm:h-96 lg:h-auto text-xs sm:text-sm space-y-3 font-mono">
+                <!-- Registros -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Script Local Modularizado -->
+    <script src="js/app.js"></script>
+</body>
+</html>
